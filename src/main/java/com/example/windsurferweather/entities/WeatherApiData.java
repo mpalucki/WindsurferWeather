@@ -2,6 +2,11 @@ package com.example.windsurferweather.entities;
 
 import java.util.List;
 
+/*
+
+Class for mapping data to WeatherResponse
+
+*/
 public class WeatherApiData {
     private List<WeatherResponse> data;
 
