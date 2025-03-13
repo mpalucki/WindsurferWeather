@@ -32,7 +32,7 @@ public class WindsurferWeatherControllerTest {
 
     @Test
     void testGetBestLocation() throws Exception {
-        String date = "2025-03-15";
+        String date = LocalDate.now().toString();
         WeatherApiResponse mockResponse = new WeatherApiResponse("Jastarnia", 20.0, 12.0, date);
         when(weatherService.findBestWindsurfingLocation(date)).thenReturn(mockResponse);
 
@@ -45,7 +45,7 @@ public class WindsurferWeatherControllerTest {
 
     @Test
     void testGetBestLocation_NotFound() throws Exception {
-        String date = "2025-03-15";
+        String date = LocalDate.now().toString();
         when(weatherService.findBestWindsurfingLocation(date)).thenReturn(null);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/weather/best-location")
