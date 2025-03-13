@@ -5,6 +5,7 @@ import com.example.windsurferweather.entities.Location;
 import com.example.windsurferweather.entities.WeatherApiResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -18,6 +19,18 @@ public class WeatherService {
     private static final Logger logger = LoggerFactory.getLogger(WeatherService.class);
     private final WeatherClient weatherClient;
     private final List<Location> locations;
+
+    @Value("${weatherbit.api.maxWindSpeed}")
+    private double maxWindSpeed;
+
+    @Value("${weatherbit.api.minWindSpeed}")
+    private double minWindSpeed;
+
+    @Value("${weatherbit.api.maxTemp}")
+    private double maxTemp;
+
+    @Value("${weatherbit.api.minTemp}")
+    private double minTemp;
 
     public WeatherService(WeatherClient weatherClient) {
         this.weatherClient = weatherClient;
@@ -46,32 +59,33 @@ public class WeatherService {
         List<WeatherApiResponse> validForecasts = new ArrayList<>();
 
         for (Location location : locations) {
-            WeatherApiResponse forecastResponse = weatherClient.getWeatherForLocation(location, date);
+            List<WeatherApiResponse> forecastResponses = weatherClient.getWeatherForLocation(location);
 
-            if (forecastResponse != null) {
-                LocalDate forecastDate = LocalDate.parse(date);
-                if (!forecastDate.isBefore(requestedDate) && !forecastDate.isAfter(maxDate)) {
-                    double temperature = forecastResponse.getTemp();
-                    double windSpeed = forecastResponse.getWind_spd();
+            if (!forecastResponses.isEmpty()) {
+                for(WeatherApiResponse response : forecastResponses) {
+                    LocalDate forecastDate = LocalDate.parse(response.getDatetime());
+                    if (!forecastDate.isBefore(requestedDate) && !forecastDate.isAfter(requestedDate.plusDays(7))) {
+                        double temperature = response.getTemp();
+                        double windSpeed = response.getWind_spd();
 
-                    if (isSuitableForWindsurfing(forecastResponse)) {
-                        validForecasts.add(new WeatherApiResponse(location.getName(), temperature, windSpeed));
+                        if (isSuitableForWindsurfing(response)) {
+                            validForecasts.add(new WeatherApiResponse(location.getName(), temperature, windSpeed, response.getDatetime()));
+                        }
                     }
                 }
             }
         }
-
         return selectBestLocation(validForecasts);
     }
 
-    private static boolean isSuitableForWindsurfing(WeatherApiResponse response) {
-        return response.getWind_spd() >= 5 && response.getWind_spd() <= 18 &&
-                response.getTemp() >= 5 && response.getTemp() <= 35;
+    private boolean isSuitableForWindsurfing(WeatherApiResponse response) {
+        return response.getWind_spd() >= minWindSpeed && response.getWind_spd() <= maxWindSpeed &&
+                response.getTemp() >= minTemp && response.getTemp() <= maxTemp;
     }
 
     private WeatherApiResponse selectBestLocation(List<WeatherApiResponse> forecasts) {
         return forecasts.stream()
-                .max(Comparator.comparingDouble(f -> f.getWind_spd() * 3 + f.getTemp()))
+                .max(Comparator.comparingDouble(f -> (f.getWind_spd() * 3) + f.getTemp()))
                 .orElse(null);
     }
 }

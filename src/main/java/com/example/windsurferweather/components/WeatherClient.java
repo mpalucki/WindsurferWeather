@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
+
 @Component
 public class WeatherClient {
 
@@ -27,12 +29,12 @@ public class WeatherClient {
         this.restTemplate = restTemplate;
     }
 
-    public WeatherApiResponse getWeatherForLocation(Location location, String date) {
+    public List<WeatherApiResponse> getWeatherForLocation(Location location) {
         try {
             logger.info("Executing getWeatherForLocation method");
             String url = String.format("%s?city=%s&key=%s&days=16", apiUrl, location.getName(), apiKey);
             WeatherApiDataHandler response = restTemplate.getForObject(url, WeatherApiDataHandler.class);
-            return response.extractWeatherForDate(date, location.getName());
+            return response.extractWeatherForDate(location.getName());
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Error fetching weather data", e);
         }
